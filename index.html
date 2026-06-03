@@ -132,6 +132,7 @@
   <div class="tab" onclick="switchTab('inprogress')">In Progress <span class="tab-badge" id="badge-inprogress"></span></div>
   <div class="tab" onclick="switchTab('completed')">Completed <span class="tab-badge" id="badge-completed"></span></div>
   <div class="tab" onclick="switchTab('all')">All Tasks</div>
+  <div class="tab" onclick="switchTab('projects')">By Project <span class="tab-badge" id="badge-projects"></span></div>
 </div>
 
 <div class="content">
@@ -180,6 +181,15 @@
     <div class="card">
       <table id="tbl-all"><thead><tr id="thead-all"></tr></thead><tbody id="tbody-all"></tbody></table>
     </div>
+  </div>
+
+  <!-- BY PROJECT -->
+  <div id="view-projects" class="view">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="status-bar" id="count-projects"></div>
+      <input class="search" placeholder="Search project…" oninput="filterProjects(this.value)">
+    </div>
+    <div id="projects-list"></div>
   </div>
 
 </div><!-- /content -->
@@ -333,8 +343,115 @@ function renderAll() {
   renderTable('inprogress', inProgress);
   renderTable('completed', completed);
   renderTable('all', allTasks);
+  renderProjects(allTasks);
   document.getElementById('badge-inprogress').textContent = inProgress.length;
   document.getElementById('badge-completed').textContent  = completed.length;
+}
+
+// ── By Project ────────────────────────────────────────────────────────────────
+function buildProjectGroups(tasks) {
+  const map = {};
+  tasks.forEach(t => {
+    const key = t.project || '(No Project)';
+    if (!map[key]) map[key] = { name: key, tasks: [], totalCredits: 0, tools: new Set() };
+    map[key].tasks.push(t);
+    map[key].totalCredits += parseFloat(t.aiCredits) || 0;
+    if (t.aiTool) map[key].tools.add(t.aiTool);
+  });
+  return Object.values(map).sort((a, b) => b.totalCredits - a.totalCredits || b.tasks.length - a.tasks.length);
+}
+
+let projectGroups = [];
+
+function renderProjects(tasks) {
+  projectGroups = buildProjectGroups(tasks);
+  document.getElementById('badge-projects').textContent = projectGroups.length;
+  document.getElementById('count-projects').textContent = projectGroups.length + ' project' + (projectGroups.length !== 1 ? 's' : '');
+  renderProjectList(projectGroups);
+}
+
+function filterProjects(q) {
+  const lq = q.toLowerCase();
+  const filtered = q ? projectGroups.filter(p => p.name.toLowerCase().includes(lq)) : projectGroups;
+  document.getElementById('count-projects').textContent = filtered.length + ' project' + (filtered.length !== 1 ? 's' : '');
+  renderProjectList(filtered);
+}
+
+function renderProjectList(groups) {
+  document.getElementById('projects-list').innerHTML = groups.length
+    ? groups.map((p, i) => {
+        const inProg = p.tasks.filter(t => !t.completed).length;
+        const done   = p.tasks.filter(t => t.completed).length;
+        const tools  = [...p.tools].join(', ') || '—';
+        const taskRows = p.tasks.map(t => `
+          <tr>
+            <td style="padding:8px 16px;border-bottom:.5px solid var(--border);max-width:320px">
+              <a href="${t.url}" target="_blank" style="font-size:12px;font-weight:500;color:#fff;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='#fff'">${esc(t.name)}</a>
+            </td>
+            <td style="padding:8px 16px;border-bottom:.5px solid var(--border);font-size:12px;color:var(--muted);white-space:nowrap">${t.assignee ? esc(t.assignee) : '—'}</td>
+            <td style="padding:8px 16px;border-bottom:.5px solid var(--border);white-space:nowrap">${t.aiTool ? `<span class="pill pill-tool">${esc(t.aiTool)}</span>` : '<span style="color:var(--muted);font-size:12px">—</span>'}</td>
+            <td style="padding:8px 16px;border-bottom:.5px solid var(--border);font-size:12px;font-weight:600;color:${t.aiCredits ? 'var(--accent2)' : 'var(--muted)'};text-align:right;white-space:nowrap">${t.aiCredits ? Number(t.aiCredits).toLocaleString() : '—'}</td>
+            <td style="padding:8px 16px;border-bottom:.5px solid var(--border);font-size:12px;color:var(--muted);white-space:nowrap">${t.creditType ? esc(t.creditType) : '—'}</td>
+            <td style="padding:8px 16px;border-bottom:.5px solid var(--border);white-space:nowrap">
+              <span style="font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;${t.completed ? 'background:rgba(34,197,94,.15);color:#4ade80' : 'background:rgba(108,99,255,.15);color:#a5b4fc'}">${t.completed ? 'Done' : 'In Progress'}</span>
+            </td>
+          </tr>`).join('');
+
+        return `
+          <div class="card" style="margin-bottom:16px">
+            <!-- Project header — click to expand -->
+            <div onclick="toggleProject(${i})" style="display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer;border-bottom:1px solid var(--border)"
+              onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:14px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:3px">${esc(tools)}</div>
+              </div>
+              <div style="display:flex;gap:20px;align-items:center;flex-shrink:0">
+                <div style="text-align:center">
+                  <div style="font-size:18px;font-weight:700;color:var(--accent2)">${p.totalCredits > 0 ? p.totalCredits.toLocaleString() : '—'}</div>
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Credits</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:18px;font-weight:700;color:#fff">${p.tasks.length}</div>
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Tasks</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:18px;font-weight:700;color:var(--accent)">${inProg}</div>
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Active</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:18px;font-weight:700;color:#4ade80">${done}</div>
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Done</div>
+                </div>
+                <div id="chevron-${i}" style="color:var(--muted);font-size:14px;transition:transform .2s">▼</div>
+              </div>
+            </div>
+            <!-- Expandable task list -->
+            <div id="proj-tasks-${i}" style="display:none">
+              <table style="width:100%;border-collapse:collapse">
+                <thead><tr style="border-bottom:1px solid var(--border)">
+                  <th style="padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left">Task</th>
+                  <th style="padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left">Assignee</th>
+                  <th style="padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left">AI Tool</th>
+                  <th style="padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:right">Credits</th>
+                  <th style="padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left">Credit Type</th>
+                  <th style="padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left">Status</th>
+                </tr></thead>
+                <tbody>${taskRows}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }).join('')
+    : '<div class="empty">No projects found.</div>';
+}
+
+function toggleProject(i) {
+  const el = document.getElementById('proj-tasks-' + i);
+  const ch = document.getElementById('chevron-' + i);
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  ch.style.transform = open ? '' : 'rotate(180deg)';
 }
 
 function renderKpis() {
