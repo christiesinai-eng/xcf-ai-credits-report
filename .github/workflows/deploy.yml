@@ -38,4 +38,4 @@ jobs:
           git commit -m "Deploy $(date +'%Y-%m-%d %H:%M')"
 
           # Force-push to gh-pages (creates it if missing)
-          git push origin HEAD:gh-pages --force
+          git push origin HEAD:gh-pages --force --force-with-lease=gh-pages || git push origin HEAD:gh-pages --force
