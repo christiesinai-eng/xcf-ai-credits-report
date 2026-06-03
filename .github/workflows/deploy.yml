@@ -1,6 +1,8 @@
 name: Deploy AI Credits Report
 
 on:
+  schedule:
+    - cron: '0 16 * * 1-5'  # 4am NZT weekdays (matches other XCF reports)
   push:
     branches: [main]
   workflow_dispatch:
