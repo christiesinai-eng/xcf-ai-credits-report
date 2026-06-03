@@ -1,0 +1,36 @@
+name: Deploy AI Credits Report
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inject secrets into HTML
+        env:
+          ASANA_TOKEN: ${{ secrets.ASANA_TOKEN }}
+          WORKSPACE_GID: ${{ secrets.ASANA_WORKSPACE_GID }}
+        run: |
+          sed -i "s|%%ASANA_TOKEN%%|${ASANA_TOKEN}|g" index.html
+          sed -i "s|%%WORKSPACE_GID%%|${WORKSPACE_GID}|g" index.html
+
+      - name: Deploy to GitHub Pages
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git fetch origin gh-pages 2>/dev/null || true
+          git checkout gh-pages 2>/dev/null || git checkout --orphan gh-pages
+          cp index.html /tmp/index.html
+          git rm -rf . --quiet 2>/dev/null || true
+          cp /tmp/index.html index.html
+          git add index.html
+          git commit -m "Deploy $(date +%Y-%m-%d\ %H:%M)" || echo "No changes"
+          git push origin gh-pages
