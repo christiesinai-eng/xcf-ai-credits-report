@@ -26,11 +26,16 @@ jobs:
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-          git fetch origin gh-pages 2>/dev/null || true
-          git checkout gh-pages 2>/dev/null || git checkout --orphan gh-pages
+
+          # Copy the built file out before switching branches
           cp index.html /tmp/index.html
-          git rm -rf . --quiet 2>/dev/null || true
+
+          # Create or reset gh-pages as an orphan branch
+          git checkout --orphan gh-pages-tmp
+          git rm -rf . --quiet || true
           cp /tmp/index.html index.html
           git add index.html
-          git commit -m "Deploy $(date +%Y-%m-%d\ %H:%M)" || echo "No changes"
-          git push origin gh-pages
+          git commit -m "Deploy $(date +'%Y-%m-%d %H:%M')"
+
+          # Force-push to gh-pages (creates it if missing)
+          git push origin HEAD:gh-pages --force
