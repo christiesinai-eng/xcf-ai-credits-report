@@ -324,8 +324,15 @@ async function loadData() {
 
     renderAll();
 
-    const now = new Date().toLocaleTimeString('en-NZ', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-    document.getElementById('hdr-gentime').textContent = 'Updated ' + now;
+    const now = new Date().toLocaleString('en-NZ', {
+      timeZone: 'Pacific/Auckland',
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    const tzAbbr = /NZDT|NZST/.test(new Date().toLocaleString('en-NZ', { timeZone:'Pacific/Auckland', timeZoneName:'short' }))
+      ? new Date().toLocaleString('en-NZ', { timeZone:'Pacific/Auckland', timeZoneName:'short' }).match(/NZ\w+/)?.[0] || 'NZT'
+      : 'NZT';
+    document.getElementById('hdr-gentime').textContent = 'Updated ' + now + ' ' + tzAbbr;
     status.textContent = `✔ ${allTasks.length} tasks loaded`;
   } catch(e) {
     status.textContent = '✖ Error: ' + e.message;
