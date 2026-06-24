@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>XCF AI Credits &amp; Tools Report</title>
+<style>
+  :root {
+    --bg:     #0f1117;
+    --bg2:    #1a1d27;
+    --bg3:    #22263a;
+    --border: #2e3250;
+    --text:   #e2e8f0;
+    --muted:  #8892b0;
+    --accent: #6c63ff;
+    --accent2:#00d4aa;
+    --warn:   #f59e0b;
+    --danger: #ef4444;
+    --green:  #22c55e;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter','Segoe UI',system-ui,sans-serif; font-size: 14px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* header */
+  .header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 24px 32px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .header-title { font-size: 30px; font-weight: 800; color: #fff; letter-spacing: -.5px; line-height: 1.1; }
+  .header-date  { font-size: 16px; color: var(--muted); margin-top: 6px; }
+  .header-right { text-align: right; font-size: 13px; color: var(--muted); }
+  .header-right .live { font-size: 12px; color: var(--accent2); margin-top: 4px; }
+  .header-right .gentime { font-size: 12px; color: #4a5270; margin-top: 3px; }
+
+  /* tabs */
+  .tabs { display: flex; gap: 2px; padding: 16px 32px 0; background: var(--bg2); border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .tab { padding: 10px 20px; border-radius: var(--radius) var(--radius) 0 0; cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 500; border: 1px solid transparent; border-bottom: none; white-space: nowrap; transition: background .15s, color .15s; }
+  .tab:hover { background: var(--bg3); color: var(--text); }
+  .tab.active { background: var(--bg); color: #fff; border-color: var(--border); }
+  .tab-badge { background: rgba(245,158,11,.25); color: #fbbf24; border-radius: 10px; padding: 1px 6px; font-size: 11px; margin-left: 4px; }
+
+  /* content */
+  .content { padding: 28px 32px; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 28px 0 12px; }
+  .section-title:first-child { margin-top: 0; }
+
+  /* kpi */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 14px; margin-bottom: 8px; }
+  .kpi { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .kpi .label { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 8px; }
+  .kpi .value { font-size: 26px; font-weight: 700; color: #fff; }
+  .kpi .sub   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* card + table */
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { padding: 10px 16px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
+  th:hover { color: var(--text); }
+  th.sorted { color: var(--accent); }
+  td { padding: 10px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg3); }
+
+  /* hbar */
+  .hbar-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .hbar-row:last-child { border-bottom: none; }
+  .hbar-label { width: 160px; flex-shrink: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hbar-track { flex: 1; background: var(--bg3); border-radius: 4px; height: 8px; overflow: hidden; }
+  .hbar-fill  { height: 100%; border-radius: 4px; }
+  .hbar-value { width: 90px; flex-shrink: 0; font-size: 12px; color: var(--muted); text-align: right; }
+
+  /* pill */
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .pill-tool { background: rgba(108,99,255,.2); color: #a5b4fc; }
+
+  /* search */
+  input.search { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; color: var(--text); font-size: 13px; width: 240px; outline: none; }
+  input.search:focus { border-color: var(--accent); }
+  input.search::placeholder { color: var(--muted); }
+
+  /* refresh btn */
+  .refresh-btn { padding: 8px 20px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s; }
+  .refresh-btn:hover { background: var(--accent); border-color: var(--accent); }
+  .refresh-btn:disabled { opacity: .5; cursor: wait; }
+
+  .empty { padding: 40px; text-align: center; color: var(--muted); font-size: 13px; }
+  .status-bar { font-size: 13px; color: var(--muted); }
+
+  @media (max-width: 640px) {
+    .kpi-grid { grid-template-columns: repeat(2,1fr); }
+    .content  { padding: 16px 14px; }
+    .header   { padding: 16px 14px; }
+    .header-title { font-size: 22px; }
+    .tabs     { padding: 12px 14px 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- password overlay -->
+<div id="pw-overlay" style="position:fixed;inset:0;background:#0f1117;display:flex;align-items:center;justify-content:center;z-index:9999">
+  <div style="background:#1a1d27;border:1px solid #2e3250;border-radius:14px;padding:40px 36px;width:320px;text-align:center">
+    <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:6px">XCF AI Credits</div>
+    <div style="font-size:13px;color:#8892b0;margin-bottom:24px">Enter the password to view this report</div>
+    <input id="pw-input" type="password" placeholder="Password" autofocus
+      onkeydown="if(event.key==='Enter')checkPw()"
+      style="width:100%;padding:10px 14px;background:#0f1117;border:1px solid #2e3250;border-radius:8px;color:#fff;font-size:15px;text-align:center;outline:none;margin-bottom:12px;box-sizing:border-box"/>
+    <button onclick="checkPw()"
+      style="width:100%;padding:10px;background:#6c63ff;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">View Report</button>
+    <div id="pw-error" style="font-size:12px;color:#f87171;margin-top:10px;display:none">Incorrect password. Please try again.</div>
+  </div>
+</div>
+
+<!-- header -->
+<div class="header">
+  <div>
+    <div class="header-title">XCF AI Credits &amp; Tools</div>
+    <div class="header-date" id="hdr-date"></div>
+  </div>
+  <div class="header-right">
+    <div>Workspace-wide · all AI fields</div>
+    <div class="live">✔ Live Asana data</div>
+    <div class="gentime" id="hdr-gentime"></div>
+  </div>
+</div>
+
+<!-- tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview')">Overview</div>
+  <div class="tab" onclick="switchTab('inprogress')">In Progress <span class="tab-badge" id="badge-inprogress"></span></div>
+  <div class="tab" onclick="switchTab('completed')">Completed <span class="tab-badge" id="badge-completed"></span></div>
+  <div class="tab" onclick="switchTab('all')">All Tasks</div>
+  <div class="tab" onclick="switchTab('projects')">By Project <span class="tab-badge" id="badge-projects"></span></div>
+</div>
+
+<div class="content">
+
+  <!-- OVERVIEW -->
+  <div id="view-overview" class="view active">
+    <div class="section-title" style="margin-top:0">Summary</div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <div class="section-title">Tasks by Tool</div>
+    <div class="card"><div id="tool-bars" style="padding:12px 20px"></div></div>
+
+    <div class="section-title">Refresh Data</div>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadData()">↻ Refresh from Asana</button>
+    <span id="refresh-status" style="margin-left:12px;font-size:12px;color:var(--muted)"></span>
+  </div>
+
+  <!-- IN PROGRESS -->
+  <div id="view-inprogress" class="view">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="status-bar" id="count-inprogress"></div>
+      <input class="search" placeholder="Search task, person, tool…" oninput="filterTable('inprogress',this.value)">
+    </div>
+    <div class="card">
+      <table id="tbl-inprogress"><thead><tr id="thead-inprogress"></tr></thead><tbody id="tbody-inprogress"></tbody></table>
+    </div>
+  </div>
+
+  <!-- COMPLETED -->
+  <div id="view-completed" class="view">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="status-bar" id="count-completed"></div>
+      <input class="search" placeholder="Search task, person, tool…" oninput="filterTable('completed',this.value)">
+    </div>
+    <div class="card">
+      <table id="tbl-completed"><thead><tr id="thead-completed"></tr></thead><tbody id="tbody-completed"></tbody></table>
+    </div>
+  </div>
+
+  <!-- ALL -->
+  <div id="view-all" class="view">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="status-bar" id="count-all"></div>
+      <input class="search" placeholder="Search task, person, tool…" oninput="filterTable('all',this.value)">
+    </div>
+    <div class="card">
+      <table id="tbl-all"><thead><tr id="thead-all"></tr></thead><tbody id="tbody-all"></tbody></table>
+    </div>
+  </div>
+
+  <!-- BY PROJECT -->
+  <div id="view-projects" class="view">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="status-bar" id="count-projects"></div>
+      <input class="search" placeholder="Search project…" oninput="filterProjects(this.value)">
+    </div>
+    <div id="projects-list"></div>
+  </div>
+
+</div><!-- /content -->
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const ASANA_TOKEN     = '2/1205645532237095/1214928516208039:9ccaafd3ec3fa82d9c20393d5208a66a';   // injected by GitHub Action
+const WORKSPACE_GID   = '41261904390129'; // injected by GitHub Action
+const PASSWORD        = 'AI';
+const SESSION_KEY     = 'xcf-ai-credits-auth';
+
+const AI_TOOL_GID     = '1215403593648539';
+const AI_CREDITS_GID  = '1213617495561849';
+const CREDIT_TYPE_GID = '1215403583807476';
+
+const TOOL_COLORS = ['#6c63ff','#00d4aa','#f59e0b','#ef4444','#22c55e','#a78bfa','#38bdf8'];
+
+// ── Password ──────────────────────────────────────────────────────────────────
+(function(){
+  if (sessionStorage.getItem(SESSION_KEY) === '1')
+    document.getElementById('pw-overlay').style.display = 'none';
+})();
+
+function checkPw() {
+  if (document.getElementById('pw-input').value === PASSWORD) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    document.getElementById('pw-overlay').style.display = 'none';
+    loadData();
+  } else {
+    document.getElementById('pw-error').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+  }
+}
+
+// ── Date header ───────────────────────────────────────────────────────────────
+document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('en-NZ',
+  { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('view-' + name).classList.add('active');
+}
+
+// ── Asana fetch ───────────────────────────────────────────────────────────────
+const FIELDS = [
+  'gid','name','completed','assignee','assignee.name',
+  'custom_fields','custom_fields.gid','custom_fields.name','custom_fields.type',
+  'custom_fields.text_value','custom_fields.number_value',
+  'custom_fields.enum_value','custom_fields.enum_value.name',
+  'custom_fields.multi_enum_values','custom_fields.multi_enum_values.name',
+  'custom_fields.display_value',
+  'memberships','memberships.project','memberships.project.name',
+  'memberships.section','memberships.section.name',
+  'permalink_url'
+].join(',');
+
+async function fetchAllPages(fieldGid) {
+  const results = [];
+  const params = new URLSearchParams({
+    [`custom_fields.${fieldGid}.is_set`]: 'true',
+    opt_fields: FIELDS,
+    limit: '100',
+  });
+  let url = `https://app.asana.com/api/1.0/workspaces/${WORKSPACE_GID}/tasks/search?${params}`;
+
+  while (url) {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${ASANA_TOKEN}` } });
+    if (res.status === 429) { await sleep(10000); continue; }
+    if (!res.ok) throw new Error(`Asana ${res.status}`);
+    const json = await res.json();
+    results.push(...(json.data || []));
+    url = json.next_page ? json.next_page.uri : null;
+  }
+  return results;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function extractField(task, gid) {
+  const f = (task.custom_fields || []).find(cf => cf.gid === gid);
+  if (!f) return null;
+  if (f.enum_value && f.enum_value.name) return f.enum_value.name;
+  if (f.multi_enum_values && f.multi_enum_values.length) return f.multi_enum_values.map(e => e.name).join(', ');
+  if (f.text_value != null && f.text_value !== '') return f.text_value;
+  if (f.display_value != null && f.display_value !== '') return f.display_value;
+  if (f.number_value != null) return String(f.number_value);
+  return null;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let allTasks = [], inProgress = [], completed = [];
+const sortState = {};
+
+async function loadData() {
+  const btn = document.getElementById('refresh-btn');
+  const status = document.getElementById('refresh-status');
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  status.textContent = 'Fetching from Asana…';
+
+  try {
+    const [byTool, byCredits, byType] = await Promise.all([
+      fetchAllPages(AI_TOOL_GID),
+      fetchAllPages(AI_CREDITS_GID),
+      fetchAllPages(CREDIT_TYPE_GID),
+    ]);
+
+    const seen = new Set();
+    const raw = [];
+    for (const t of [...byTool, ...byCredits, ...byType]) {
+      if (!seen.has(t.gid)) { seen.add(t.gid); raw.push(t); }
+    }
+
+    allTasks = raw.map(t => ({
+      gid:        t.gid,
+      name:       t.name,
+      completed:  t.completed,
+      url:        t.permalink_url,
+      assignee:   t.assignee ? t.assignee.name : null,
+      project:    t.memberships && t.memberships[0] ? t.memberships[0].project.name : null,
+      section:    t.memberships && t.memberships[0] && t.memberships[0].section ? t.memberships[0].section.name : null,
+      aiTool:     extractField(t, AI_TOOL_GID),
+      aiCredits:  extractField(t, AI_CREDITS_GID),
+      creditType: extractField(t, CREDIT_TYPE_GID),
+    }));
+
+    inProgress = allTasks.filter(t => !t.completed);
+    completed  = allTasks.filter(t => t.completed);
+
+    renderAll();
+
+    const now = new Date().toLocaleString('en-NZ', {
+      timeZone: 'Pacific/Auckland',
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    const tzAbbr = /NZDT|NZST/.test(new Date().toLocaleString('en-NZ', { timeZone:'Pacific/Auckland', timeZoneName:'short' }))
+      ? new Date().toLocaleString('en-NZ', { timeZone:'Pacific/Auckland', timeZoneName:'short' }).match(/NZ\w+/)?.[0] || 'NZT'
+      : 'NZT';
+    document.getElementById('hdr-gentime').textContent = 'Updated ' + now + ' ' + tzAbbr;
+    status.textContent = `✔ ${allTasks.length} tasks loaded`;
+  } catch(e) {
+    status.textContent = '✖ Error: ' + e.message;
+    status.style.color = 'var(--danger)';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '↻ Refresh from Asana';
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderKpis();
+  renderToolBars();
+  renderTable('inprogress', inProgress);
+  renderTable('completed', completed);
+  renderTable('all', allTasks);
+  renderProjects(allTasks);
+  document.getElementById('badge-inprogress').textContent = inProgress.length;
+  document.getElementById('badge-completed').textContent  = completed.length;
+}
+
+// ── By Project ────────────────────────────────────────────────────────────────
+function buildProjectGroups(tasks) {
+  const map = {};
+  tasks.forEach(t => {
+    const key = t.project || '(No Project)';
+    if (!map[key]) map[key] = { name: key, tasks: [], totalCredits: 0, tools: new Set() };
+    map[key].tasks.push(t);
+    map[key].totalCredits += parseFloat(t.aiCredits) || 0;
+    if (t.aiTool) map[key].tools.add(t.aiTool);
+  });
+  return Object.values(map).sort((a, b) => b.totalCredits - a.totalCredits || b.tasks.length - a.tasks.length);
+}
+
+let projectGroups = [];
+
+function renderProjects(tasks) {
+  projectGroups = buildProjectGroups(tasks);
+  document.getElementById('badge-projects').textContent = projectGroups.length;
+  document.getElementById('count-projects').textContent = projectGroups.length + ' project' + (projectGroups.length !== 1 ? 's' : '');
+  renderProjectList(projectGroups);
+}
+
+function filterProjects(q) {
+  const lq = q.toLowerCase();
+  const filtered = q ? projectGroups.filter(p => p.name.toLowerCase().includes(lq)) : projectGroups;
+  document.getElementById('count-projects').textContent = filtered.length + ' project' + (filtered.length !== 1 ? 's' : '');
+  renderProjectList(filtered);
+}
+
+function renderProjectList(groups) {
+  document.getElementById('projects-list').innerHTML = groups.length
+    ? groups.map((p, i) => {
+        const inProg = p.tasks.filter(t => !t.completed).length;
+        const done   = p.tasks.filter(t => t.completed).length;
+        const tools  = [...p.tools].join(', ') || '—';
+        const taskRows = p.tasks.map(t => `
+          <tr>
+            <td style="padding:8px 16px;border-bottom:.5px solid var(--border);max-width:320px">
+              <a href="${t.url}" target="_blank" style="font-size:12px;font-weight:500;color:#fff;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='#fff'">${esc(t.name)}</a>
+            </td>
+            <td style="padding:8px 16px;border-bottom:.5px solid var(--border);font-size:12px;color:var(--muted);white-space:nowrap">${t.assignee ? esc(t.assignee) : '—'}</td>
+            <td style="padding:8px 16px;border-bottom:.5px solid var(--border);white-space:nowrap">${t.aiTool ? `<span class="pill pill-tool">${esc(t.aiTool)}</span>` : '<span style="color:var(--muted);font-size:12px">—</span>'}</td>
+            <td style="padding:8px 16px;border-bottom:.5px solid var(--border);font-size:12px;font-weight:600;color:${t.aiCredits ? 'var(--accent2)' : 'var(--muted)'};text-align:right;white-space:nowrap">${t.aiCredits ? Number(t.aiCredits).toLocaleString() : '—'}</td>
+            <td style="padding:8px 16px;border-bottom:.5px solid var(--border);font-size:12px;color:var(--muted);white-space:nowrap">${t.creditType ? esc(t.creditType) : '—'}</td>
+            <td style="padding:8px 16px;border-bottom:.5px solid var(--border);white-space:nowrap">
+              <span style="font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;${t.completed ? 'background:rgba(34,197,94,.15);color:#4ade80' : 'background:rgba(108,99,255,.15);color:#a5b4fc'}">${t.completed ? 'Done' : 'In Progress'}</span>
+            </td>
+          </tr>`).join('');
+
+        return `
+          <div class="card" style="margin-bottom:16px">
+            <!-- Project header — click to expand -->
+            <div onclick="toggleProject(${i})" style="display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer;border-bottom:1px solid var(--border)"
+              onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:14px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:3px">${esc(tools)}</div>
+              </div>
+              <div style="display:flex;gap:20px;align-items:center;flex-shrink:0">
+                <div style="text-align:center">
+                  <div style="font-size:18px;font-weight:700;color:var(--accent2)">${p.totalCredits > 0 ? p.totalCredits.toLocaleString() : '—'}</div>
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Credits</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:18px;font-weight:700;color:#fff">${p.tasks.length}</div>
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Tasks</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:18px;font-weight:700;color:var(--accent)">${inProg}</div>
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Active</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-size:18px;font-weight:700;color:#4ade80">${done}</div>
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Done</div>
+                </div>
+                <div id="chevron-${i}" style="color:var(--muted);font-size:14px;transition:transform .2s">▼</div>
+              </div>
+            </div>
+            <!-- Expandable task list -->
+            <div id="proj-tasks-${i}" style="display:none">
+              <table style="width:100%;border-collapse:collapse">
+                <thead><tr style="border-bottom:1px solid var(--border)">
+                  <th style="padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left">Task</th>
+                  <th style="padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left">Assignee</th>
+                  <th style="padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left">AI Tool</th>
+                  <th style="padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:right">Credits</th>
+                  <th style="padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left">Credit Type</th>
+                  <th style="padding:8px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left">Status</th>
+                </tr></thead>
+                <tbody>${taskRows}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }).join('')
+    : '<div class="empty">No projects found.</div>';
+}
+
+function toggleProject(i) {
+  const el = document.getElementById('proj-tasks-' + i);
+  const ch = document.getElementById('chevron-' + i);
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  ch.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function renderKpis() {
+  const totalCredits = allTasks.reduce((s, t) => s + (parseFloat(t.aiCredits) || 0), 0);
+  const toolCounts = {};
+  allTasks.forEach(t => { if (t.aiTool) toolCounts[t.aiTool] = (toolCounts[t.aiTool] || 0) + 1; });
+  const toolCount = Object.keys(toolCounts).length;
+  const avgCredits = allTasks.length ? Math.round(totalCredits / allTasks.length) : 0;
+
+  document.getElementById('kpi-grid').innerHTML = [
+    kpi('Total Tasks',       allTasks.length,                    'with AI data'),
+    kpi('Total Credits',     totalCredits.toLocaleString(),       'across all tools'),
+    kpi('In Progress',       inProgress.length,                  'active tasks'),
+    kpi('Completed',         completed.length,                   'finished tasks'),
+    kpi('Tools Used',        toolCount,                          'distinct AI tools'),
+    kpi('Avg Credits/Task',  avgCredits.toLocaleString(),        'per task with credits'),
+  ].join('');
+}
+
+function kpi(label, value, sub) {
+  return `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`;
+}
+
+function renderToolBars() {
+  const counts = {};
+  allTasks.forEach(t => { if (t.aiTool) counts[t.aiTool] = (counts[t.aiTool] || 0) + 1; });
+  const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+  const max = sorted[0] ? sorted[0][1] : 1;
+
+  document.getElementById('tool-bars').innerHTML = sorted.length
+    ? sorted.map(([tool, count], i) => `
+        <div class="hbar-row">
+          <div class="hbar-label">${esc(tool)}</div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:${(count/max*100).toFixed(1)}%;background:${TOOL_COLORS[i % TOOL_COLORS.length]}"></div></div>
+          <div class="hbar-value">${count} task${count !== 1 ? 's' : ''}</div>
+        </div>`).join('')
+    : '<div class="empty">No tool data yet.</div>';
+}
+
+const COLS = ['Task','Assignee','Project','AI Tool','Credits','Credit Type'];
+
+function renderTable(id, tasks) {
+  const theadRow = document.getElementById('thead-' + id);
+  theadRow.innerHTML = COLS.map((c, i) =>
+    `<th onclick="sortCol('${id}',${i})" ${sortState[id] && sortState[id].col === i ? 'class="sorted"' : ''}>
+      ${c} <span style="opacity:${sortState[id] && sortState[id].col === i ? 1 : .4};margin-left:4px">
+        ${sortState[id] && sortState[id].col === i ? (sortState[id].asc ? '↑' : '↓') : '↕'}
+      </span>
+    </th>`
+  ).join('');
+
+  document.getElementById('count-' + id).textContent = tasks.length + ' task' + (tasks.length !== 1 ? 's' : '');
+  renderTableBody(id, tasks);
+}
+
+function renderTableBody(id, tasks) {
+  const st = sortState[id];
+  const sorted = st ? [...tasks].sort((a, b) => {
+    const av = cellVal(a, st.col), bv = cellVal(b, st.col);
+    const cmp = typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv));
+    return st.asc ? cmp : -cmp;
+  }) : tasks;
+
+  document.getElementById('tbody-' + id).innerHTML = sorted.length
+    ? sorted.map(t => `<tr>
+        <td style="max-width:300px">
+          <a href="${t.url}" target="_blank" style="font-size:13px;font-weight:500;color:#fff;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='#fff'">${esc(t.name)}</a>
+          ${t.project ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.project)}${t.section ? ' › '+esc(t.section) : ''}</div>` : ''}
+        </td>
+        <td style="font-size:13px;white-space:nowrap">${t.assignee ? esc(t.assignee) : '<span style="color:var(--muted)">—</span>'}</td>
+        <td style="font-size:12px;color:var(--muted);max-width:200px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.project ? esc(t.project) : '—'}</div></td>
+        <td style="white-space:nowrap">${t.aiTool ? `<span class="pill pill-tool">${esc(t.aiTool)}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+        <td style="font-size:13px;font-weight:600;color:${t.aiCredits ? 'var(--accent2)' : 'var(--muted)'};text-align:right;white-space:nowrap">${t.aiCredits ? Number(t.aiCredits).toLocaleString() : '—'}</td>
+        <td style="font-size:12px;color:var(--muted);white-space:nowrap">${t.creditType ? esc(t.creditType) : '—'}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="6" class="empty">No tasks found.</td></tr>`;
+}
+
+function cellVal(t, col) {
+  return [t.name, t.assignee||'', t.project||'', t.aiTool||'', parseFloat(t.aiCredits)||0, t.creditType||''][col];
+}
+
+function sortCol(id, col) {
+  const st = sortState[id] || { col: null, asc: true };
+  if (st.col === col) sortState[id] = { col, asc: !st.asc };
+  else sortState[id] = { col, asc: true };
+  renderTable(id, id === 'inprogress' ? inProgress : id === 'completed' ? completed : allTasks);
+}
+
+function filterTable(id, q) {
+  const src = id === 'inprogress' ? inProgress : id === 'completed' ? completed : allTasks;
+  const lq = q.toLowerCase();
+  const filtered = q ? src.filter(t =>
+    (t.name||'').toLowerCase().includes(lq) ||
+    (t.assignee||'').toLowerCase().includes(lq) ||
+    (t.project||'').toLowerCase().includes(lq) ||
+    (t.aiTool||'').toLowerCase().includes(lq)
+  ) : src;
+  document.getElementById('count-' + id).textContent = filtered.length + ' task' + (filtered.length !== 1 ? 's' : '');
+  renderTableBody(id, filtered);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Auto-load if already authed ───────────────────────────────────────────────
+if (sessionStorage.getItem(SESSION_KEY) === '1') loadData();
+</script>
+</body>
+</html>
